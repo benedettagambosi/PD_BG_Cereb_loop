@@ -4,8 +4,8 @@ Multiarea model of Basal ganglia and Cerebellum. It simulate both healthy and Pa
 ## Required packages
 - Nest 2.20.x
 - fooof
-- cerebnest 
-- bgmodel
+- cerebnest [cerebnest](https://github.com/marcobiasizzo/cereb-nest/tree/nest2.20.2_python3.8) branch nest2.20.2_python3.8
+- bgmodel [bgmodel](https://github.com/marcobiasizzo/bgmodel)
 
 ## Initialization procedure
 - Clone this repository
