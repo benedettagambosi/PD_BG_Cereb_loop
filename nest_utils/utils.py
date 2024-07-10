@@ -216,7 +216,16 @@ def average_wavelet_transform(mass_models_sol, T_sample, legend_labels, mean=Non
         ax.plot(freq[wavelet_idx[0]:wavelet_idx[1]], diff_mean[:, idx], label=legend_labels[idx])
         
     return diff_mean
+                               
+def get_pop_dim(pop_list):
+    ''' Given a population list, return a list of pop dimentions '''
+    dim_list = []
 
+    for el in pop_list:
+        dim = len(el)
+        dim_list = dim_list + [dim]
+
+    return dim_list
 
 def get_pop_dim_from_ids(pop_list, pop_ids):
     ''' Given a dictionary of pop indexes, return a list of pop_dimention '''
