@@ -2,7 +2,7 @@ import subprocess
 import sys
 
 trials = 5
-exp =  int(sys.argv[2]) # indexing this list -> ['active', 'EBCC']
+exp =  int(sys.argv[1]) # indexing this list -> ['active', 'EBCC']
 for idx in range(trials):
     for mod in range(3): # indexing this list -> ['external_dopa', 'internal_dopa', 'both_dopa'] external: only bg, internal only cerebellum
         for dopa in range(5): # indexing this list -> [0.,-0.1,-0.2,-0.4,-0.8]
