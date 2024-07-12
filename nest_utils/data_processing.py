@@ -176,7 +176,7 @@ def load_and_process_wavelet(path, region, wavelet_dict, wavelet_dict_norm):
 
     for file_type in file_types:
         with open(f"{path}/{file_type}_wavelet_per_trial_list_{region}.p", "rb") as f:
-            data = p.load(f)
+            data = pickle.load(f)
         
         data = np.array(data)
         wavelet_dict[region][file_type] = data

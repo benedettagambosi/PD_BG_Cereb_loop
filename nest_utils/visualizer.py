@@ -860,6 +860,15 @@ def cr_thr(thr, ratio_f, selected_trials, maf_step, threshold, plot = False):
     else:
         return CR
 
+def get_cell_sdf_MA(cell, selected_trials, rster, trials_start, burst_dur, maf_step):
+    sdf_mean_cell = []
+    sdf_maf_cell = []
+    for trial in selected_trials:
+        sdf_cell = sdf(cell, trial, rster, trials_start, burst_dur)
+        sdf_mean_cell.append(sdf_mean(sdf_cell))
+        sdf_maf_cell.append(sdf_maf(sdf_cell, maf_step))
+    return sdf_mean_cell, sdf_maf_cell
+
 def cr_isi(thr, selected_trials, maf_step, threshold, burst_dur, burst_dur_cs, trials_start, rster, between_start,plot = False):
 
     sdf_maf_ratio = (burst_dur-maf_step)/burst_dur
@@ -918,3 +927,21 @@ def cr_isi(thr, selected_trials, maf_step, threshold, burst_dur, burst_dur_cs, t
         return CR, fig
     else:
         return CR
+
+
+def norm_sdf(cell, selected_trials, rster, trials_start, burst_dur, burst_dur_cs, between_start, maf_step):
+    sdf_maf_ratio = (burst_dur - maf_step) / burst_dur
+    isi_start = int(100 * sdf_maf_ratio)
+    isi_end = int(burst_dur_cs * sdf_maf_ratio)
+    baseline = np.mean(sdf_baseline(cell, rster, trials_start, burst_dur, between_start))
+    sdf_maf_list = []
+    sdf_mean_list = []
+    for j in selected_trials:
+        sdf_f = sdf(cell, j, rster, trials_start, burst_dur)
+        sdf_maf_f = sdf_maf(sdf_f, maf_step)
+        sdf_mean_f = sdf_mean(sdf_f)
+        sdf_maf_f -= baseline
+        sdf_mean_f -= baseline
+        sdf_maf_list.append(sdf_maf_f)
+        sdf_mean_list.append(sdf_mean_f)
+    return sdf_maf_list, sdf_mean_list
