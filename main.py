@@ -271,7 +271,7 @@ for key in tests_dict.keys():
             tic = time.time()
             s_h.simulate(tot_trials=trials, pre_sim_time=settling_time)
             toc = time.time()
-            print(f'Elapsed simulation time with {CORES} cores: {int((toc - tic) / 60)} min, {(toc - tic) % 60:.0f} sec')
+            print(f'Elapsed simulation time with {cpu_count()} cores: {int((toc - tic) / 60)} min, {(toc - tic) % 60:.0f} sec')
 
             # potentials = utils.get_voltage_values(nest, vm_list, recorded_names[1:])
             rasters = utils.get_spike_values(nest, sd_list, recorded_names)
