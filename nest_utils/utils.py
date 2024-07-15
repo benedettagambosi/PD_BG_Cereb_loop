@@ -209,11 +209,11 @@ def average_wavelet_transform(mass_models_sol, T_sample, legend_labels, mean=Non
 
     diff_array = np.array(diff_list)
     diff_mean = diff_array.mean(axis=0)
-    diff_std = diff_array.std(axis=0)
-    fig,ax = plt.subplots(1,1)
-    for idx in range(diff_mean.shape[1]):
-        ax.fill_between(freq[wavelet_idx[0]:wavelet_idx[1]], diff_mean[:, idx] - diff_std[:, idx], diff_mean[:, idx] + diff_std[:, idx], alpha=0.5)
-        ax.plot(freq[wavelet_idx[0]:wavelet_idx[1]], diff_mean[:, idx], label=legend_labels[idx])
+    # diff_std = diff_array.std(axis=0)
+    # fig,ax = plt.subplots(1,1)
+    # for idx in range(diff_mean.shape[1]):
+    #     ax.fill_between(freq[wavelet_idx[0]:wavelet_idx[1]], diff_mean[:, idx] - diff_std[:, idx], diff_mean[:, idx] + diff_std[:, idx], alpha=0.5)
+    #     ax.plot(freq[wavelet_idx[0]:wavelet_idx[1]], diff_mean[:, idx], label=legend_labels[idx])
         
     return diff_mean
                                
