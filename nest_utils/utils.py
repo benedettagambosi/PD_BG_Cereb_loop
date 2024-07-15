@@ -49,6 +49,46 @@ def get_spike_values(nest, sd_list, pop_names):
 
 
 
+def fr_window_step(raster_list, pop_dim_ids, sim_time, window, step, start_time):
+    '''
+    calculate punctual fr per neuron
+    sim_time, window, step in [ms]
+
+    in start_time will be centered the first window
+    '''
+
+    ret_list = []
+
+    for raster in raster_list:
+        pop_name = raster['compartment_name']
+        t = raster['times']
+        i = raster['neurons_idx'] - pop_dim_ids[pop_name][0]
+        pop_dim = pop_dim_ids[pop_name][1] - pop_dim_ids[pop_name][0] + 1
+
+        elem_len = int((sim_time - start_time) / step) + 1
+        firing = np.zeros((pop_dim, elem_len))
+
+        for index, time in zip(i, t):
+            last_window_index = int((time-start_time + window/2.) / step)   # index in the array for the last window containing the firing
+            dt = time - (start_time + last_window_index * step - window/2.)   # time from t and the beginning of the last window
+            how_many_wind_before = int((window - dt) / step)    # how many windows before contain the firing
+            for j in range(how_many_wind_before + 1):
+                elem = last_window_index - j
+                if 0 <= elem < elem_len: # if spike at the last ms, do not count following "out" window
+                    firing[int(index), elem] += 1
+
+        # print(firing[0,:])
+        fr = firing / (window / 1000.0)
+
+        central_windows_time = np.linspace(start_time, start_time+step*(elem_len-1), elem_len)
+
+        ret = {'times': central_windows_time, 'instant_fr': fr, 'name': pop_name}
+
+        ret_list = ret_list + [ret]
+
+    return ret_list
+
+
 def create_model_dictionary(N_neurons, pop_names, pop_ids, sim_time, sample_time=None, settling_time=None, trials=None, b_c_params=None):
     """ Function to create a dictionary containing model parameters  """
     dic = {}
