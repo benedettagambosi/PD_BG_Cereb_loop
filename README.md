@@ -41,7 +41,9 @@ TODO: add instructions
     This scripts need to receive the following argument:
     - experiment: 0 for general motor state, 1 for EBCC
 
-    e.g. `python3 run_scripts.py 0` simulates the network in the general motor state with all dopamine depletion levels in all sites (dopamine depletion only in the BG, only in the cerebellum, and in both regions).
+    e.g. 
+    `python3 run_scripts.py 0` simulates the network in the general motor state with all dopamine depletion levels in all sites (dopamine depletion only in the BG, only in the cerebellum, and in both regions).
+    `python3 run_scripts.py 1` simulates the network berforming the EBCC protocol with three dopamine depletion levels (physiological case, medium severity and worse pathological case) in all sites (dopamine depletion only in the BG, only in the cerebellum, and in both regions).
 
 * Run `generate_figures.ipynb` to generate the figures
 
