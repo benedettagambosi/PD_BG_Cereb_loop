@@ -32,12 +32,8 @@ mode = mode_list[mode_i]                 # dopa depl location
 experiment = experiment_list[experiment_i]     # cortical activation or EBCC
 dopa_depl_level = dopa_depl_level_list[dopa_depl_level_i]      # between 0. and -0.8
 
-
-
-MODULE_PATH = str(Path.home()) + '/nest/lib/nest/ml_module'
-nest.Install(MODULE_PATH)  # Import my_BGs module
-MODULE_PATH = str(Path.home()) + '/nest/lib/nest/cerebmodule'
-nest.Install(MODULE_PATH)  # Import CerebNEST
+nest.Install("ml_module")  # Import my_BGs module
+nest.Install("cerebmodule")  # Import CerebNEST
 
 # path to h5py spatial distribution
 hdf5_path = 'Cereb_nest/scaffold_full_IO_400.0x400.0_microzone.hdf5'
