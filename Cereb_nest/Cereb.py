@@ -5,6 +5,9 @@
 import numpy as np
 import h5py
 from copy import deepcopy
+import sys
+sys.path.append("/home/docker/packages/tvb-multiscale/my_tests/PD_test")
+
 
 tot_trials = 1
 
@@ -26,10 +29,10 @@ tau_exc_pfgoc = 0.5
 tau_exc_cfmli = 1.2
 
 # Single neuron parameters:
-neuron_param = {'golgi': {'t_ref': 2.0, 'C_m': 145.0,'tau_m': 44.0,'V_th': -55.0,'V_reset': -75.0,'Vinit': -62.0,'E_L': -62.0,'Vmin':-150.0,
+neuron_param = {'golgi': {'t_ref': 2.0, 'C_m': 145.0,'tau_m': 44.0,'V_th': -55.0,'V_reset': -75.0,'Vinit': -62.0,'E_L': -62.0,'V_min':-150.0,
                          'lambda_0':1.0, 'tau_V':0.4,'I_e': 16.214,'kadap': 0.217,'k1': 0.031, 'k2': 0.023,'A1': 259.988,'A2':178.01,
                          'E_rev1': Erev_exc, 'E_rev2': Erev_inh, 'E_rev3': Erev_exc,'tau_syn1': tau_exc['golgi'], 'tau_syn2': tau_inh['golgi'], 'tau_syn3': tau_exc_pfgoc},
-               'granule': {'t_ref': 1.5, 'C_m': 7.0,'tau_m': 24.15,'V_th': -41.0,'V_reset': -70.0,'Vinit': -62.0,'E_L': -62.0,'Vmin': -150.0,
+               'granule': {'t_ref': 1.5, 'C_m': 7.0,'tau_m': 24.15,'V_th': -41.0,'V_reset': -70.0,'Vinit': -62.0,'E_L': -62.0,'V_min': -150.0,
                            'lambda_0':1.0, 'tau_V':0.3,'I_e': -0.888,'kadap': 0.022,'k1': 0.311, 'k2': 0.041,'A1': 0.01,'A2':-0.94,
                            'E_rev1': Erev_exc, 'E_rev2': Erev_inh, 'E_rev3': Erev_exc,'tau_syn1': tau_exc['granule'], 'tau_syn2': tau_inh['granule'], 'tau_syn3': tau_exc['granule']},
                'purkinje': {'t_ref': 0.5, 'C_m': 334.0,'tau_m': 47.0,'V_th': -43.0,'V_reset': -69.0,'Vinit': -59.0,'E_L': -59.0,
@@ -61,8 +64,8 @@ neuron_param = {'golgi': {'t_ref': 2.0, 'C_m': 145.0,'tau_m': 44.0,'V_th': -55.0
 # Connection weights
 conn_weights = {'pc_dcn': 0.4, 'pc_dcnp': 0.12, 'pf_bc': 0.015, 'pf_goc': 0.05,'pf_pc': pf_pc*ratio, \
                 'pf_sc': 0.015, 'sc_pc': 0.3, 'aa_goc': 1.2, 'aa_pc': 0.7, 'bc_pc': 0.3, 'dcnp_io': 3.0, 'gj_bc': 0.2, 'gj_sc': 0.2, 'glom_dcn': 0.05,\
-                'glom_goc': 1.5, 'glom_grc': 0.15, 'goc_glom': 0.0, 'gj_goc': 0.3,'goc_grc': 0.6, 'io_dcn': 0.1, 'io_dcnp': 0.2,\
-                'io_bc': 1.0,'io_sc': 1.0, 'io_pc': 40.0, }
+                'glom_goc': 1.5, 'glom_grc': 0.15, 'goc_glom': 0.0, 'gj_goc': 0.3,'goc_grc': 0.6, 'io_dcn': 0., 'io_dcnp': 0.,\
+                 'io_pc': 0.0, 'io_bc': .0,'io_sc': .0,}##'io_dcn': 0.1, 'io_dcnp': 0.2,'io_pc': 40.0, 'io_bc': 1.0,'io_sc': 1.0,
 
 # Connection delays
 conn_delays = {'aa_goc': 2.0, 'aa_pc': 2.0, 'bc_pc': 4.0, 'dcnp_io': 20.0, 'gj_bc': 1.0, 'gj_sc': 1.0, 'glom_dcn': 4.0,
@@ -111,7 +114,7 @@ class Cereb_class:
                              'stellate': 6,
                              'dcn': 7,  # this project to cortex
                              'dcnp': 8,  # while this project to IO (there is dcnp_io connection) -> opposite to paper!!
-                             'io': 9}
+                              'io': 9}
 
         self.hdf5_file_name = hdf5_file_name
         self.n_wind = n_wind
@@ -130,7 +133,7 @@ class Cereb_class:
             positions = np.array(f['positions'])
 
         if experiment == 'EBCC':
-            plasticity = True
+            plasticity = False #%SET BACK TO TRUE
         else:
             plasticity = False
 
@@ -168,12 +171,20 @@ class Cereb_class:
                 np.random.shuffle(all_purkinje)
                 selected_purkinje = all_purkinje[:n_PC_alive]      # indexes of PC still alive
                 death_purkinje = all_purkinje[n_PC_alive:]
-                nest_.SetStatus(death_purkinje, neuron_param['death_purkinje'])
+                for PC in death_purkinje:
+                    nest_.SetStatus(PC, neuron_param['death_purkinje'])
 
-
+        
         with h5py.File(pos_file, 'r') as f:
             vt = {}
             for conn in conn_weights.keys():
+                # pre_model = conn_names[conn][0]
+                # post_model = conn_names[conn][1]
+                # connection = np.array(f['connections/' + conn])
+                # pre_start = nest.GetNodes({"model":pre_model})[0].tolist()
+                # post_start = nest.GetNodes({"model":post_model})[0].tolist()
+                # pre = [int(x + 1 -pre_start) for x in connection[:, 0]]  # pre and post may contain repetitions!
+                # post = [int(x + 1-post_start) for x in connection[:, 1]]
                 connection = np.array(f['connections/' + conn])
                 pre = [int(x + 1) for x in connection[:, 0]]  # pre and post may contain repetitions!
                 post = [int(x + 1) for x in connection[:, 1]]
@@ -231,15 +242,20 @@ class Cereb_class:
                 
                 # Static connections with distributed delay                                
                 elif conn == "io_bc" or conn == "io_sc":
-                    syn_param = {"model": "static_synapse", "weight": conn_weights[conn], \
-                                "delay": {'distribution': 'normal_clipped', 'low': min_iomli, 'mu': conn_delays[conn],
-                                'sigma': sd_iomli},"receptor_type":conn_receptors[conn]}
-                    nest_.Connect(pre,post, {"rule": "one_to_one"}, syn_param)
+                    from scipy import stats
+                    sample =stats.truncnorm.rvs(a = (min_iomli-conn_delays[conn])/sd_iomli,b = np.inf, loc=conn_delays[conn], scale=sd_iomli, size=len(pre))
+
+                    syn_param = {"synapse_model": "static_synapse", "weight": np.ones(len(pre))*conn_weights[conn], \
+                                # "delay": {'distribution': 'normal_clipped', 'low': min_iomli, 'mu': conn_delays[conn],'sigma': sd_iomli},
+                                "delay":sample,
+                                "receptor_type":np.ones(len(pre))*conn_receptors[conn]}
+                    nest_.Connect(np.array(pre),np.array(post), {"rule": "one_to_one"}, syn_param)
                                                     
                 # Static connections with constant delay
                 else:
-                    syn_param = {"model": "static_synapse", "weight": conn_weights[conn], "delay": conn_delays[conn],"receptor_type": conn_receptors[conn]}
-                    nest_.Connect(pre,post, {"rule": "one_to_one"}, syn_param)
+                # elif conn in ["glom_grc", "pf_pc","pc_dcn"]:
+                    syn_param = {"synapse_model": "static_synapse", "weight": np.ones(len(pre))*conn_weights[conn], "delay": np.ones(len(pre))*conn_delays[conn],"receptor_type": np.ones(len(pre))*conn_receptors[conn]}
+                    nest_.Connect(np.array(pre),np.array(post), {"rule": "one_to_one"}, syn_param)
     
                 # If a connection is a teaching one, also the corresponding volume transmitter should be connected
                 if (conn == "io_bc" or conn == "io_sc") and mli:                                     
@@ -254,7 +270,7 @@ class Cereb_class:
                     print("Connections ", conn, " done!")
     
         Cereb_pops = neuron_models
-        pop_ids = {key: (min(neuron_models[key]), max(neuron_models[key])) for key, _ in self.cell_type_ID.items()}
+        pop_ids = {key: (min(neuron_models[key].tolist()), max(neuron_models[key].tolist())) for key, _ in self.cell_type_ID.items()}
         WeightPFPC = None
         PF_PC_conn = None
         return Cereb_pops, pop_ids, WeightPFPC, PF_PC_conn
@@ -264,7 +280,7 @@ class Cereb_class:
                         experiment='active', CS ={"start":500., "end":760., "freq":36.}, US ={"start":750., "end":760., "freq":500.}, tot_trials = None, len_trial = None):
 
         glom_id, _ = self.get_glom_indexes(self.Cereb_pops['glomerulus'], "EBCC")
-        id_stim = sorted(list(set(glom_id)))
+        id_stim = np.sort(list(set(glom_id)))
         n = len(id_stim)
         IO_id = self.Cereb_pops['io']
 
@@ -294,9 +310,9 @@ class Cereb_class:
                 n_targets = len(id_stim) / n_s_g
                 for i in range(n_s_g - 1):
                     post = id_stim[round(i * n_targets):round((i + 1) * n_targets)]
-                    nest_.Connect([CTX[i]], post, {'rule': 'all_to_all'})
+                    nest_.Connect(CTX[i], np.sort(post), {'rule': 'all_to_all'})
                 post = id_stim[round((n_s_g - 1) * n_targets):]
-                nest_.Connect([CTX[n_s_g - 1]], post, {'rule': 'all_to_all'}, syn_param)
+                nest_.Connect(CTX[n_s_g - 1], np.sort(post), {'rule': 'all_to_all'}, syn_param)
 
         elif in_spikes == 'spike_generator_ebcc':
             print('The cortex input is a spike generator')
@@ -308,7 +324,7 @@ class Cereb_class:
 
             # create a cortex input
             CTX = nest_.Create("spike_generator", n_s_g)  # , params=generator_params)
-            syn_param = {"delay": 2.0}
+            syn_param = {"delay": [2.0]*n}
 
             # connect
             if n_spike_generators == 'n_glomeruli':
@@ -318,16 +334,16 @@ class Cereb_class:
                 n_targets = len(id_stim) / n_s_g
                 for i in range(n_s_g - 1):
                     post = id_stim[round(i * n_targets):round((i + 1) * n_targets)]
-                    nest_.Connect([CTX[i]], post, {'rule': 'all_to_all'})
+                    nest_.Connect(CTX[i], np.sort(post), {'rule': 'all_to_all'})
                 post = id_stim[round((n_s_g - 1) * n_targets):]
-                nest_.Connect([CTX[n_s_g - 1]], post, {'rule': 'all_to_all'}, syn_param)
+                nest_.Connect(CTX[n_s_g - 1], np.sort(post), {'rule': 'all_to_all'}, syn_param)
 
             # Create an empty dictionary 
             split_dict = {}  
             size_chunks = int(len(CTX)/self.n_wind)
             # Split the original list into chunks of size n
             k= 0 
-            for i in range(0, len(CTX), size_chunks): 
+            for i in range(0, len(CTX)-size_chunks, size_chunks): 
                 split_list = CTX[i:i+size_chunks] 
                 key = "CTX_" + str(k) 
                 split_dict[key] = split_list 
@@ -355,7 +371,8 @@ class Cereb_class:
             CS_FREQ = 36.
             # Simulate a conscious stimulus
             CTX = nest_.Create('poisson_generator', params={'rate': CS_FREQ})
-            nest_.Connect(CTX, id_stim)
+            CTX_id = np.array(CTX.tolist())
+            nest_.Connect(CTX_id, np.array(id_stim))
 
         else:
             print("ATTENTION! no cortex input generated")
@@ -386,7 +403,7 @@ class Cereb_class:
                 bool_idx = np.sum((glom_xz - np.array([x_c, z_c])) ** 2, axis=1).__lt__(
                     RADIUS ** 2)  # lt is less then, <
                 target_gloms = glom_posi[bool_idx, 0] + 1
-                id_stim = list(set([glom for glom in glom_pop if glom in target_gloms]))
+                id_stim = list(set([glom for glom in glom_pop.tolist() if glom in target_gloms]))
 
             elif experiment == 'robot':
                 x_high_bool = np.array(glom_xz[:, 0].__gt__(200 - 150))      # (200 - 120))  # z > 200 (left in paper)
@@ -399,42 +416,150 @@ class Cereb_class:
 
         return id_stim, bool_idx
 
+def plot_nest_results_raster(raster, model_dic, SIMULATION_LENGTH):
+
+    import plotly.graph_objs as go
+    from plotly.subplots import make_subplots
+
+    # ######################### PLOTTING PSTH AND RASTER PLOTS ########################
+
+    CELL_TO_PLOT = ['glomerulus',  "granule",  "basket", "stellate", 'purkinje', 'dcn','dcnp', 'io']
+
+    cells = {'glomerulus': [raster[0]["times"], raster[0]["neurons_idx"]],
+             'granule': [raster[1]["times"], raster[1]["neurons_idx"]],
+             'basket': [raster[2]["times"], raster[2]["neurons_idx"]],
+             'stellate': [raster[3]["times"], raster[3]["neurons_idx"]],
+             'purkinje': [raster[4]["times"], raster[4]["neurons_idx"]],
+             'dcn': [raster[5]["times"], raster[5]["neurons_idx"]],
+             'dcnp': [raster[6]["times"], raster[6]["neurons_idx"]],
+             'io': [raster[7]["times"], raster[7]["neurons_idx"]],}
+
+    color = {'granule': '#E62214',  # 'rgba(255, 0, 0, .8)',
+             'golgi': '#332EBC',  # 'rgba(0, 255, 0, .8)',
+             'glomerulus': '#0E1030',  # rgba(0, 0, 0, .8)',
+             'purkinje': '#0F8944',  # 'rgba(64, 224, 208, .8)',
+             'stellate': '#FFC425',  # 'rgba(234, 10, 142, .8)',
+             'basket': '#F37735',
+             'io': 'rgba(75, 75, 75, .8)',
+             'dcn': 'rgba(100, 100, 100, .8)',
+             'dcnp': '#080808'}  # 'rgba(234, 10, 142, .8)'}
+
+    # PSTH
+
+    neuron_number = {}
+    for cell in CELL_TO_PLOT:
+        neuron_number[cell] = model_dic["pop_ids"][cell][1] - model_dic["pop_ids"][cell][0]
+
+    def metrics(spikeData, TrialDuration, cell, figure_handle, sel_row):
+        id_spikes = np.sort(np.unique(spikeData, return_index=True))
+        bin_size = 5  # [ms]
+        n_bins = int(TrialDuration / bin_size) + 1
+        psth, tms = np.histogram(spikeData, bins=n_bins, range=(0, TrialDuration))
+
+        # absolute frequency
+        abs_freq = np.zeros(id_spikes[0].shape[0])
+        for idx, i in enumerate(id_spikes[0]):
+            count = np.where(spikeData == i)[0]
+            abs_freq[idx] = count.shape[0]
+
+        # mean frequency
+        m_f = (id_spikes[0].shape[0]) / ((TrialDuration / 1000))
+
+        layout = go.Layout(
+            scene=dict(aspectmode='data'),
+            xaxis={'title': 'time (ms)'},
+            yaxis={'title': 'number of spikes'}
+        )
+
+        n_neurons = neuron_number[cell]
+        if cell == "granule":
+            n_neurons = int(np.round(n_neurons/10))
+        figure_handle.add_trace(go.Bar(
+            x=tms[0:len(tms) - 1],
+            y=psth / ((bin_size * 0.001) * n_neurons),
+            width=4.0,
+            marker=dict(
+                color=color[cell])
+        ), row=sel_row, col=1)
+
+
+        return tms
+
+    # RASTER
+    def raster(times, cell_ids, cell, fig_handle, sel_row):
+        trace0 = go.Scatter(
+            x=times,
+            y=cell_ids,
+            name='',
+            mode='markers',
+            marker=dict(
+                size=4,
+                color=color[cell],
+                line=dict(
+                    width=.2,
+                    color='rgb(0, 0, 0)'
+                )
+            )
+        )
+        fig_handle.add_trace(trace0, row=sel_row, col=1)
+
+    fig_psth = make_subplots(rows=len(CELL_TO_PLOT), cols=1, subplot_titles=CELL_TO_PLOT, x_title='Time [ms]',
+                             y_title='Frequency [Hz]')
+    fig_raster = make_subplots(rows=len(CELL_TO_PLOT), cols=1, subplot_titles=CELL_TO_PLOT, x_title='Time [ms]',
+                               y_title='# cells')
+    num = 1
+    for c in CELL_TO_PLOT:
+        times = cells[c][0]
+        cell_ids = cells[c][1]
+        metrics(times, SIMULATION_LENGTH, c, fig_psth, num)
+        raster(times, cell_ids, c, fig_raster, num)
+        num += 1
+    fig_psth.update_xaxes(range=[0, SIMULATION_LENGTH * 1.1])
+    fig_raster.update_xaxes(range=[0, SIMULATION_LENGTH * 1.1])
+    fig_psth.update_layout(showlegend=False)
+    fig_raster.update_layout(showlegend=False)
+    
+    fig_psth.show()
+    fig_raster.show()
+    
+    return fig_psth, fig_raster
 
 if __name__ == "__main__":
-    pass 
+    #pass 
     import sys
+    sys.path += ['/home/docker/packages/tvb-multiscale/my_test/']
     import nest
     from pathlib import Path
     from nest_utils import utils
     import pickle
     import os
-    CORES = 24
-    VIRTUAL_CORES = 24
+    CORES = 30
+    VIRTUAL_CORES = 1
     RESOLUTION = 1.
     run_on_vm = False
 # set number of kernels
     nest.ResetKernel()
     nest.SetKernelStatus({"total_num_virtual_procs": CORES, "resolution": RESOLUTION})
     nest.set_verbosity("M_ERROR")  # reduce plotted info
-    MODULE_PATH = str(Path.home()) + '/nest/lib/nest/ml_module'
-    nest.Install(MODULE_PATH)  # Import my_BGs module
-    MODULE_PATH = str(Path.home()) + '/nest/lib/nest/cerebmodule'
-    nest.Install(MODULE_PATH)  # Import CerebNEST
+    # MODULE_PATH = str(Path.home()) + '/nest/lib/nest/ml_module'
+    nest.Install("ml_module")  # Import my_BGs module
+    # MODULE_PATH = str(Path.home()) + '/nest/lib/nest/cerebmodule'
+    nest.Install("cerebmodule")  # Import CerebNEST
 
-    hdf5_file_name = "Cereb_nest/scaffold_full_IO_400.0x400.0_microzone.hdf5"
-    Cereb_recorded_names = ['glomerulus', 'purkinje', 'dcn','dcnp', 'io']
+    hdf5_file_name = "/home/docker/packages/tvb-multiscale/tvb_data/mouse/rising-net/scaffold_full_IO_400.0x400.0_microzone.hdf5"
+    Cereb_recorded_names = ['glomerulus',  "granule",  "basket", "stellate", 'purkinje', 'io','dcn','dcnp',]
     
 
-    len_trial = 3000.
-    set_time = 1000.
+    len_trial = 1000.
+    set_time = 0.
 
-    for j in range(10):
+    for j in range(1):
         nest.ResetKernel()
-        nest.SetKernelStatus({'grng_seed': 100 * j + 1,
-                            'rng_seeds': [100 * j + k for k in range(2,26)],
+        nest.SetKernelStatus({'rng_seed': 100 * j + 1,
+                            # 'rng_seeds': [100 * j + k for k in range(2,26)],
                             'local_num_threads': CORES, 'total_num_virtual_procs': CORES})
         nest.set_verbosity("M_ERROR")  # reduce plotted info
-        savings_dir = f'./savings/cereb_active_trial_{j}'
+        savings_dir = f'/home/docker/packages/tvb-multiscale/my_test/Cereb_nest3/savings/cereb_active_trial_{j}'
         if not os.path.exists(savings_dir): os.makedirs(savings_dir)  # create folder if not present
 
 
@@ -463,9 +588,26 @@ if __name__ == "__main__":
 
         
         rasters = utils.get_spike_values(nest, sd_list, Cereb_recorded_names)
+        
+        plot_nest_results_raster(rasters, model_dict, len_trial)
+        
         with open(f'{savings_dir}/rasters', 'wb') as pickle_file:
             pickle.dump(rasters, pickle_file)
 
 
         with open(f'{savings_dir}/model_dic', 'wb') as pickle_file:
             pickle.dump(model_dict, pickle_file)
+
+
+        import matplotlib.pyplot as plt
+        from nest_utils import utils, visualizer as vsl
+        fr_stats = utils.calculate_fr_stats(rasters, model_dict['pop_ids'], t_start=10.)
+
+        with open(f'{savings_dir}/fr_stats', 'wb') as pickle_file:
+            pickle.dump(fr_stats, pickle_file)
+        print(fr_stats['fr'])
+        print(fr_stats['name'])
+        
+        # fig3, ax3 = vsl.firing_rate_histogram(fr_stats['fr'], fr_stats['name'], CV_list=fr_stats['CV'],
+        #                                 target_fr=np.array([0.,0.,0.,0.,0.]))
+        # plt.show()

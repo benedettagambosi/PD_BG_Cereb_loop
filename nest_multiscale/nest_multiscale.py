@@ -3,6 +3,9 @@ from scipy.integrate import solve_ivp
 import time
 from contextlib import contextmanager
 
+import sys
+sys.path.append("/home/docker/packages/tvb-multiscale/my_tests/PD_test")
+
 from nest_utils import utils, visualizer as vsl
 
 

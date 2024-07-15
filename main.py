@@ -4,6 +4,8 @@
 
 __author__ = 'marco'
 
+path = "/home/docker/packages/tvb-multiscale/my_tests/PD_test/"
+
 import time
 import numpy as np
 import scipy.io
@@ -34,15 +36,18 @@ dopa_depl_level = dopa_depl_level_list[dopa_depl_level_i]      # between 0. and 
 
 
 
-MODULE_PATH = str(Path.home()) + '/nest/lib/nest/ml_module'
+MODULE_PATH = 'ml_module'
 nest.Install(MODULE_PATH)  # Import my_BGs module
-MODULE_PATH = str(Path.home()) + '/nest/lib/nest/cerebmodule'
+MODULE_PATH = 'cerebmodule'
 nest.Install(MODULE_PATH)  # Import CerebNEST
 
 # path to h5py spatial distribution
-hdf5_path = 'Cereb_nest/scaffold_full_IO_400.0x400.0_microzone.hdf5'
+hdf5_path = path + 'Cereb_nest3/scaffold_full_IO_400.0x400.0_microzone.hdf5'
 
 # my modules
+import sys
+sys.path.append(path)
+
 from Cereb_nest.Cereb import Cereb_class as C_c
 from BGs_nest.BGs import BGs_class as B_c
 from nest_multiscale.nest_multiscale import sim_handler, generate_ode_dictionary

@@ -2,7 +2,7 @@
 """
 """
 import sys
-sys.path.append('/home/modelling/Desktop/benedetta/BGs_Cereb_nest_PD/')
+sys.path.append("/home/docker/packages/tvb-multiscale/my_tests/PD_test")
 from BGs_nest.manager import manager_class
 
 class BGs_class:
@@ -17,7 +17,7 @@ class BGs_class:
         if not in_vitro:
             # create cortical and external inputs and connect to BGs
             assert cortical_mode == 'active' or cortical_mode == 'slow', 'cortical mode should be defined as active or slow'
-            self.CTX_pops = self.create_ctxinput(nest, cortical_mode, squared=True, in_spikes=cortex_type, n_spike_generators=n_spike_generators)
+            self.CTX_pops = self.create_ctxinput(nest, cortical_mode, squared=False, in_spikes=cortex_type, n_spike_generators=n_spike_generators)
             self.EXT_pops = self.create_extinput(nest, cortical_mode)
             self.connect_cortex_BGs(nest, in_spikes=cortex_type)
             self.connect_external_BGs(nest)
@@ -97,7 +97,7 @@ class BGs_class:
 
         BGs_pops = {'FSN': FSN_pop, 'MSND1': MSND1_pop, 'MSND2': MSND2_pop, 'GPeTA': GPeTA_pop,
                     'GPeTI': GPeTI_pop, 'STN': STN_pop, 'SNr': SNr_pop}
-        save_ids = lambda pop: (min(pop), max(pop))
+        save_ids = lambda pop: (min(pop.tolist()), max(pop.tolist()))
         pop_ids = {'FSN': save_ids(FSN_pop), 'MSND1': save_ids(MSND1_pop), 'MSND2': save_ids(MSND2_pop),
                    'GPeTA': save_ids(GPeTA_pop), 'GPeTI': save_ids(GPeTI_pop), 'STN': save_ids(STN_pop),
                    'SNr': save_ids(SNr_pop)}
@@ -113,22 +113,24 @@ class BGs_class:
         rate_STN = {'active': 250.0, 'slow': 170.0}
         a_STN = {'active': 0.35, 'slow': 0.9}
         oscillations_freq = {'active': 20., 'slow': 1.}
-        if squared:
-            poisson_type = 'poisson_generator_periodic'  # generates a squared poisson input
-            poisson_periodic_params = lambda rate_, a_: {
-                'period_first': (1. / oscillations_freq[cortical_mode_] * 1000.) / 2.,
-                'period_second': (1. / oscillations_freq[cortical_mode_] * 1000.) / 2.,
-                'rate_first': rate_[cortical_mode_] * (1. + a_[cortical_mode_]),
-                'rate_second': rate_[cortical_mode_] * (1. - a_[cortical_mode_])}
-        else:   # then, it is sinusoidal
-            poisson_type = 'sinusoidal_poisson_generator'  # generates a poisson input modulated by a sinusoid
-            poisson_periodic_params = lambda rate_, a_: {
-                'rate': rate_[cortical_mode_],
-                'amplitude': rate_[cortical_mode_] * a_[cortical_mode_],
-                'frequency': oscillations_freq[cortical_mode_]}
-
+        
         # input is poisson generator with squared or sinusoidal input
         if in_spikes == 'poisson':
+
+            if squared:
+                poisson_type = 'poisson_generator_periodic'  # generates a squared poisson input
+                poisson_periodic_params = lambda rate_, a_: {
+                    'period_first': (1. / oscillations_freq[cortical_mode_] * 1000.) / 2.,
+                    'period_second': (1. / oscillations_freq[cortical_mode_] * 1000.) / 2.,
+                    'rate_first': rate_[cortical_mode_] * (1. + a_[cortical_mode_]),
+                    'rate_second': rate_[cortical_mode_] * (1. - a_[cortical_mode_])}
+            else:   # then, it is sinusoidal
+                poisson_type = 'sinusoidal_poisson_generator'  # generates a poisson input modulated by a sinusoid
+                poisson_periodic_params = lambda rate_, a_: {
+                    'rate': rate_[cortical_mode_],
+                    'amplitude': rate_[cortical_mode_] * a_[cortical_mode_],
+                    'frequency': oscillations_freq[cortical_mode_]}
+
             CF_pop = nest_.Create(poisson_type, params=poisson_periodic_params(rate_FSN, a_FSN))
             # 1 will transmit ampa, 2 will transmit nmda
             CM1_pop1 = nest_.Create(poisson_type, params=poisson_periodic_params(rate_MSN1, a_MSN1))
@@ -268,12 +270,118 @@ class BGs_class:
                                    receptor_true=rec[aeif_model]['AMPA_2'], input_type='poisson')
 
 
+def plot_nest_results_raster(raster, model_dic, SIMULATION_LENGTH):
+
+    import plotly.graph_objs as go
+    from plotly.subplots import make_subplots
+
+    # ######################### PLOTTING PSTH AND RASTER PLOTS ########################
+
+    CELL_TO_PLOT = ['FSN', 'GPeTA', 'GPeTI','MSND1', 'MSND2',  'STN', 'SNr']
+
+    cells = {'FSN': [raster[0]["times"], raster[0]["neurons_idx"]],
+             'GPeTA': [raster[3]["times"], raster[3]["neurons_idx"]],
+             'GPeTI': [raster[4]["times"], raster[4]["neurons_idx"]],
+             'MSND1': [raster[1]["times"], raster[1]["neurons_idx"]],
+             'MSND2': [raster[2]["times"], raster[2]["neurons_idx"]],
+             'STN': [raster[5]["times"], raster[5]["neurons_idx"]],
+             'SNr': [raster[6]["times"], raster[6]["neurons_idx"]]}
+
+    color = {'FSN': '#E62214',  # 'rgba(255, 0, 0, .8)',
+             'GPeTA': '#332EBC',  # 'rgba(0, 255, 0, .8)',
+             'GPeTI': '#0E1030',  # rgba(0, 0, 0, .8)',
+             'MSND1': '#0F8944',  # 'rgba(64, 224, 208, .8)',
+             'MSND2': '#FFC425',  # 'rgba(234, 10, 142, .8)',
+             'STN': 'rgba(100, 100, 100, .8)',
+             'SNr': '#080808'}  # 'rgba(234, 10, 142, .8)'}
+
+    # PSTH
+
+    neuron_number = {}
+    for cell in CELL_TO_PLOT:
+        neuron_number[cell] = model_dic["pop_ids"][cell][1] - model_dic["pop_ids"][cell][0]
+
+    def metrics(spikeData, TrialDuration, cell, figure_handle, sel_row):
+        id_spikes = np.sort(np.unique(spikeData, return_index=True))
+        bin_size = 5  # [ms]
+        n_bins = int(TrialDuration / bin_size) + 1
+        psth, tms = np.histogram(spikeData, bins=n_bins, range=(0, TrialDuration))
+
+        # absolute frequency
+        abs_freq = np.zeros(id_spikes[0].shape[0])
+        for idx, i in enumerate(id_spikes[0]):
+            count = np.where(spikeData == i)[0]
+            abs_freq[idx] = count.shape[0]
+
+        # mean frequency
+        m_f = (id_spikes[0].shape[0]) / ((TrialDuration / 1000))
+
+        layout = go.Layout(
+            scene=dict(aspectmode='data'),
+            xaxis={'title': 'time (ms)'},
+            yaxis={'title': 'number of spikes'}
+        )
+
+        n_neurons = neuron_number[cell]
+        if cell == "granule_cell":
+            n_neurons = int(np.round(n_neurons/10))
+        figure_handle.add_trace(go.Bar(
+            x=tms[0:len(tms) - 1],
+            y=psth / ((bin_size * 0.001) * n_neurons),
+            width=4.0,
+            marker=dict(
+                color=color[cell])
+        ), row=sel_row, col=1)
+
+
+        return tms
+
+    # RASTER
+    def raster(times, cell_ids, cell, fig_handle, sel_row):
+        trace0 = go.Scatter(
+            x=times,
+            y=cell_ids,
+            name='',
+            mode='markers',
+            marker=dict(
+                size=4,
+                color=color[cell],
+                line=dict(
+                    width=.2,
+                    color='rgb(0, 0, 0)'
+                )
+            )
+        )
+        fig_handle.add_trace(trace0, row=sel_row, col=1)
+
+    fig_psth = make_subplots(rows=len(CELL_TO_PLOT), cols=1, subplot_titles=CELL_TO_PLOT, x_title='Time [ms]',
+                             y_title='Frequency [Hz]')
+    fig_raster = make_subplots(rows=len(CELL_TO_PLOT), cols=1, subplot_titles=CELL_TO_PLOT, x_title='Time [ms]',
+                               y_title='# cells')
+    num = 1
+    for c in CELL_TO_PLOT:
+        times = cells[c][0]
+        cell_ids = cells[c][1]
+        metrics(times, SIMULATION_LENGTH, c, fig_psth, num)
+        raster(times, cell_ids, c, fig_raster, num)
+        num += 1
+    fig_psth.update_xaxes(range=[0, SIMULATION_LENGTH * 1.1])
+    fig_raster.update_xaxes(range=[0, SIMULATION_LENGTH * 1.1])
+    fig_psth.update_layout(showlegend=False)
+    fig_raster.update_layout(showlegend=False)
+    
+    fig_psth.show()
+    fig_raster.show()
+    
+    return fig_psth, fig_raster
+
 
 if __name__ == "__main__":
 
+    path = "/home/docker/packages/tvb-multiscale/my_tests/PD_test/"
 
     import time
-    from marco_nest_utils import utils, visualizer as vsl
+    from nest_utils import utils, visualizer as vsl
     import os
     import pickle
     import numpy as np
@@ -282,8 +390,12 @@ if __name__ == "__main__":
     # NEST modules
     import nest
 
-    MODULE_PATH = str(Path.home()) + '/nest/lib/nest/ml_module'
-    nest.Install(MODULE_PATH)  # Import my_BGs module
+    MODULE_PATH = 'ml_module'
+    # MODULE_PATH = str(Path.home()) + '/nest/lib/nest/ml_module'
+    try:
+        nest.Install(MODULE_PATH)  # Import my_BGs module
+    except:
+        pass
 
     PARAMS_DIR = 'BGs_nest/default_params.csv'
 
@@ -300,6 +412,9 @@ if __name__ == "__main__":
     N_tot_neurons = 20000
     sim_time = 3000.0
     start_time = 1000.  # starting time for histograms data
+
+    sim_time = 1000.0
+    start_time = 0.  # starting time for histograms data
     pop_names = ['FSN', 'MSND1', 'MSND2', 'GPeTA', 'GPeTI', 'STN', 'SNr']
     # pop_names_short = ['FS', 'M1', 'M2', 'GA', 'GI', 'ST', 'SN']    # must have the same order of previous
 
@@ -312,14 +427,14 @@ if __name__ == "__main__":
 
     # set saving directory
     # date_time = datetime.now().strftime("%d%m%Y_%H%M%S")
-    # savings_dir = f'savings/BGs_{cortical_mode}_{int(sim_time)}'  # f'savings/{date_time}'
+    savings_dir = f'savings/BGs_{cortical_mode}_{int(sim_time)}'  # f'savings/{date_time}'
     # if in_vitro: savings_dir = savings_dir + '_invitro'
     # if dopa_depl: savings_dir = savings_dir + '_dopadepl'
     # print(f'Saving/Loading directory: {savings_dir}')
     
     # if __name__ == "__main__":
     out = []
-    for i in range(10):
+    for i in range(1):
         if not load_from_file:
             savings_dir = f'savings/BGs_{cortical_mode}_{int(sim_time)}'  # f'savings/{date_time}'
             if in_vitro: savings_dir = savings_dir + '_invitro'
@@ -331,8 +446,8 @@ if __name__ == "__main__":
 
             # set number of kernels
             nest.ResetKernel()
-            nest.SetKernelStatus({'grng_seed': 100 * i + 1,
-                                'rng_seeds': [100 * i + j for j in range(2,26)],
+            nest.SetKernelStatus({'rng_seed': 100 * i + 1,
+                                #'rng_seeds': [100 * i + j for j in range(2,26)],
                                 'local_num_threads': CORES, 'total_num_virtual_procs': CORES})
             nest.set_verbosity("M_ERROR")  # reduce plotted info
 
@@ -358,6 +473,8 @@ if __name__ == "__main__":
             potentials = utils.get_voltage_values(nest, vm_list, pop_names)
             rasters = utils.get_spike_values(nest, sd_list, pop_names)
 
+            plot_nest_results_raster(rasters, model_dic, sim_time)
+
             with open(f'{savings_dir}/model_dic', 'wb') as pickle_file:
                 pickle.dump(model_dic, pickle_file)
             with open(f'{savings_dir}/potentials', 'wb') as pickle_file:
@@ -376,6 +493,7 @@ if __name__ == "__main__":
                 rasters = pickle.load(pickle_file)
 
         print(model_dic['pop_ids'])
+        plot_nest_results_raster(rasters, model_dic, sim_time)
 
         #show results
         import matplotlib.pyplot as plt
@@ -391,9 +509,14 @@ if __name__ == "__main__":
         #           'active': [[0., 0., 0., 0., 0., 0., 0.], [0., 0., 0., 33.7, 33.7, 15.0, 0.]]}
 
         fr_stats = utils.calculate_fr_stats(rasters, model_dic['pop_ids'], t_start=start_time)
-        fig3, ax3 = vsl.firing_rate_histogram(fr_stats['fr'], fr_stats['name'], CV_list=fr_stats['CV'],
-                                  target_fr=np.array([0.,0.,0.,0.,9.30, 38.974,0., 12.092, 24.402]))
-        fig3.show()
+        # fig3, ax3 = vsl.firing_rate_histogram(fr_stats['fr'], fr_stats['name'], CV_list=fr_stats['CV'],
+        #                           target_fr=np.array([0.,0.,0.,0.,9.30, 38.974,0., 12.092, 24.402]))
+        # plt.show()
+        print(fr_stats['fr'])
+        print(fr_stats['name'])
+        with open(f'{savings_dir}/fr_stats', 'wb') as pickle_file:
+            pickle.dump(fr_stats, pickle_file)
+        
 
         if i == 0:
             out = np.array([fr_stats['fr']])

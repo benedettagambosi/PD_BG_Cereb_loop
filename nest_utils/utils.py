@@ -10,8 +10,32 @@ from fooof import FOOOF
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
 
+def attach_voltmeter(nest, pop_list, sampling_resolution=1.0, target_neurons='all'):
+    """ Function to attach a voltmeter to all populations in list
+        Returns a list of vms coherent with passed population
+        Default resolution is 1 ms                                  """
+    vm_list = []
+    for id, pop in enumerate(pop_list):
+        vm = nest.Create('multimeter', params={'interval': sampling_resolution, 'record_from': ["V_m"],
+                                              'record_to': "memory"})
+        if target_neurons == 'all':
+            nest.Connect(vm, pop)
+        elif target_neurons == 'random':
+            idx = randint(0, max(pop.to_list()) - min(pop.to_list()))
+            print(f'max {max(pop.to_list())}, min {min(pop.to_list())}, selected {idx}')
+            nest.Connect(vm, pop[idx])
+        elif target_neurons == 'one-by-one':
+            idx = id
+            nest.Connect(vm, pop[idx])
+        else:
+            idx = target_neurons
+            nest.Connect(vm, pop[idx])
+        vm_list.extend( vm )
+    return vm_list
+
+
 def attach_spikedetector(nest, pop_list, pop_list_to_ode=None, sd_list_to_ode=None):
-    """ Function to attach a spike_detector to all populations in list
+    """ Function to attach a spike_recorder to all populations in list
         Returns a list of vms coherent with passed population    """
     sd_list = []
 
@@ -23,18 +47,27 @@ def attach_spikedetector(nest, pop_list, pop_list_to_ode=None, sd_list_to_ode=No
                 if pop_list_to_ode_pointer < len(pop_list_to_ode):
                     pop_list_to_ode_pointer += 1
             else:
-                sd = nest.Create('spike_detector', params={'to_file': False})
+                sd = nest.Create('spike_recorder', params={'record_to': "memory"})
                 nest.Connect(pop, sd)
-                sd_list = sd_list + [sd]
+                sd_list.extend(sd)
 
     else:       # if there is no spike detector already set
         for pop in pop_list:
-            sd = nest.Create('spike_detector', params={'to_file': False})
+            sd = nest.Create('spike_recorder', params={'record_to': "memory"})
             nest.Connect(pop, sd)
-            sd_list = sd_list + [sd]
+            sd_list.extend(sd)
     return sd_list
 
-
+def get_voltage_values(nest, vm_list, pop_names):
+    """ Function to select mean voltage and time from voltmeter events
+        Returns a list of dictionaries with potentials and times  """
+    dic_list = []
+    for vm, name in zip(vm_list, pop_names):
+        potentials = nest.GetStatus(vm, "events")[0]["V_m"]
+        times = nest.GetStatus(vm, "events")[0]["times"]
+        dic = {'times': times, 'potentials': potentials, 'compartment_name': name}
+        dic_list = dic_list + [dic]
+    return dic_list
 
 def get_spike_values(nest, sd_list, pop_names):
     """ Function to select spike idxs and times from spike_det events
@@ -77,7 +110,6 @@ def calculate_fr_stats(raster_list, pop_dim_ids, t_start=0., t_end=None, multipl
             fr_list_list += [np.array(fr_list)]
             CV_list_list += [np.array(CV_list)]
         fr_list = np.array(fr_list_list).mean(axis=0)
-    
         fr_list_sd = np.array(fr_list_list).std(axis=0)
         CV_list = np.array(CV_list_list).mean(axis=0)
         CV_list_sd = np.array(CV_list_list).mean(axis=0)
