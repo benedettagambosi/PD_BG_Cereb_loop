@@ -88,11 +88,12 @@ Jul 10 15:55:23 Install [Info]:
 You have succesfully installed the cereb-nest module
 
 ## Install bgmodel
-
+```
 wget https://zenodo.org/records/10970203/files/bgmodel-master.zip
 unzip bgmodel-master.zip
 cd bgmodel-master
 ./install-module-2.20.2.sg $NEST_INSTALL_DIR
+```
 
 run `python3`, then `import nest`, then `nest.Install("ml_module")`  if you see something like:
 ```
@@ -116,6 +117,7 @@ cd PD_BG_Cereb_loop
 here you can:
 
 * Run `main.py` to perform a simulation
-TODO: add instructions
 
 * Run `run_script.py` to perform multiple times main.py
+
+See [README.md](https://github.com/benedettagambosi/PD_BG_Cereb_loop/blob/main/README.md) for instructions.
