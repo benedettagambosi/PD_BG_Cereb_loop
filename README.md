@@ -23,7 +23,6 @@ cd PD_BG_Cereb_loop
 here you can:
 
 * Run `main.py` to perform a simulation
-TODO: add instructions
 
 * Run `run_script.py` to perform multiple times main.py
 
